@@ -1,27 +1,27 @@
 .color-palette {
-  margin-bottom: 20px;
-  padding: 15px;
-  background-color: #f5f5f5;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-
-  h3 {
-    margin-top: 0;
-    margin-bottom: 10px;
-    font-size: 1.2rem;
-    color: #333;
-  }
+  padding: 8px;
+  background-color: white;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  height: 300px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  z-index: 10;
+  border: 1px solid rgba(0, 0, 0, 0.05);
 
   .colors-container {
     display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    justify-content: center;
+    flex-direction: column;
+    gap: 6px;
+    align-items: center;
+    flex-grow: 1;
+    padding: 2px 0;
   }
 
   .color-swatch {
-    width: 40px;
-    height: 40px;
+    width: 28px;
+    height: 28px;
     border-radius: 4px;
     cursor: pointer;
     transition: transform 0.2s, box-shadow 0.2s;
@@ -29,11 +29,26 @@
 
     &:hover {
       transform: scale(1.1);
+      z-index: 2;
     }
 
     &.selected {
       box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.3);
       transform: scale(1.1);
+      z-index: 1;
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .color-palette {
+    height: auto;
+    margin-bottom: 20px;
+    
+    .colors-container {
+      flex-direction: row;
+      flex-wrap: wrap;
+      justify-content: center;
     }
   }
 } 

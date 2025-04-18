@@ -21,7 +21,6 @@ type ColorPaletteProps = {
 const ColorPalette: React.FC<ColorPaletteProps> = ({ selectedColor, onColorSelect }) => {
   return (
     <div className="color-palette">
-      <h3>Select Color</h3>
       <div className="colors-container">
         {COLORS.map((color, index) => (
           <div

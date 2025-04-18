@@ -61,6 +61,26 @@ code {
     margin-bottom: 30px;
 }
 
+.canvas-palette-container {
+    display: flex;
+    margin: 0 auto;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 8px;
+    position: relative;
+}
+
+.canvas-container {
+    flex: 0 0 auto;
+}
+
+.palette-container {
+    padding-top: 80px;
+    width: 44px;
+    height: 400px;
+    margin-left: 0;
+}
+
 .buttons {
     display: flex;
     gap: 10px;
@@ -92,6 +112,16 @@ code {
     
     .buttons {
         justify-content: center;
+    }
+
+    .canvas-palette-container {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .palette-container {
+        width: 100%;
+        height: auto;
     }
 }
 

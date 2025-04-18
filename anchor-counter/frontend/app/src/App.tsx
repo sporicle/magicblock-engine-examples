@@ -1,10 +1,10 @@
-import React, {useCallback, useEffect, useRef, useState} from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import Button from "./components/Button";
-import {useConnection, useWallet} from '@solana/wallet-adapter-react';
-import {WalletMultiButton} from "@solana/wallet-adapter-react-ui";
+import { useConnection, useWallet } from '@solana/wallet-adapter-react';
+import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import Alert from "./components/Alert";
-import {Program, Provider} from "@coral-xyz/anchor";
-import {SimpleProvider} from "./components/Wallet";
+import { Program, Provider } from "@coral-xyz/anchor";
+import { SimpleProvider } from "./components/Wallet";
 import {
     AccountInfo,
     Commitment,
@@ -17,6 +17,9 @@ import {
 } from "@solana/web3.js";
 import ColorPalette from "./components/ColorPalette";
 import PaintingBoard from "./components/PaintingBoard";
+import TransactionSidebar from './components/TransactionSidebar';
+import { Transaction as TransactionType } from './components/TransactionSidebar';
+import './App.css';
 
 const PAINTING_PDA_SEED = "painting-canvas";
 const PAINTING_PROGRAM = new PublicKey("EB9qNdGitcvC6XPagSJaCxWbDsbGpzP7qKKArbK8iax5");
@@ -24,7 +27,7 @@ const BOARD_SIZE = 20;
 
 const App: React.FC = () => {
     let { connection } = useConnection();
-    const ephemeralConnection  = useRef<Connection | null>(null);
+    const ephemeralConnection = useRef<Connection | null>(null);
     const provider = useRef<Provider>(new SimpleProvider(connection));
     const { publicKey, sendTransaction } = useWallet();
     const tempKeypair = useRef<Keypair | null>(null);
@@ -36,6 +39,8 @@ const App: React.FC = () => {
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [transactionError, setTransactionError] = useState<string | null>(null);
     const [transactionSuccess, setTransactionSuccess] = useState<string | null>(null);
+    // Transaction tracking state
+    const [transactions, setTransactions] = useState<TransactionType[]>([]);
     const paintingProgramClient = useRef<Program | null>(null);
     const [paintingPda] = PublicKey.findProgramAddressSync(
         [Buffer.from(PAINTING_PDA_SEED)],
@@ -55,11 +60,11 @@ const App: React.FC = () => {
     const handlePaintingChange = useCallback((accountInfo: AccountInfo<Buffer>) => {
         console.log("Painting changed", accountInfo);
         if (!paintingProgramClient.current) return;
-        
+
         try {
             const decodedData = paintingProgramClient.current.coder.accounts.decode('painting', accountInfo.data);
             setIsDelegated(!accountInfo.owner.equals(paintingProgramClient.current.programId));
-            
+
             // Convert the painting pixels to our state format
             const newPixels = Array(BOARD_SIZE).fill(0).map(() => Array(BOARD_SIZE).fill(0));
             for (let y = 0; y < BOARD_SIZE; y++) {
@@ -79,7 +84,7 @@ const App: React.FC = () => {
 
         try {
             const decodedData = paintingProgramClient.current.coder.accounts.decode('painting', accountInfo.data);
-            
+
             // Convert the painting pixels to our state format
             const newPixels = Array(BOARD_SIZE).fill(0).map(() => Array(BOARD_SIZE).fill(0));
             for (let y = 0; y < BOARD_SIZE; y++) {
@@ -103,16 +108,41 @@ const App: React.FC = () => {
 
     // Subscribe to the ephemeral painting updates
     const subscribeToEphemeralPainting = useCallback(async (): Promise<void> => {
-        if(!ephemeralConnection.current) return;
+        if (!ephemeralConnection.current) return;
         console.log("Subscribing to ephemeral painting", paintingPda.toBase58());
         if (ephemeralPaintingSubscriptionId && ephemeralPaintingSubscriptionId.current) await ephemeralConnection.current.removeAccountChangeListener(ephemeralPaintingSubscriptionId.current);
         // Subscribe to ephemeral painting changes
-        ephemeralPaintingSubscriptionId.current = ephemeralConnection.current.onAccountChange(paintingPda, handleEphemeralPaintingChange, 'confirmed');
+        ephemeralPaintingSubscriptionId.current = ephemeralConnection.current.onAccountChange(paintingPda, handleEphemeralPaintingChange, 'processed');
     }, [paintingPda, handleEphemeralPaintingChange]);
+
+    // Function to add a transaction to our tracking state
+    const addTransaction = useCallback((signature: string, isEphemeral: boolean) => {
+        const newTransaction: TransactionType = {
+            signature,
+            status: 'pending',
+            isEphemeral,
+            timestamp: Date.now(),
+        };
+        
+        setTransactions(prevTransactions => [newTransaction, ...prevTransactions]);
+        
+        return newTransaction;
+    }, []);
+    
+    // Function to update a transaction's status
+    const updateTransactionStatus = useCallback((signature: string, status: 'pending' | 'confirmed' | 'failed') => {
+        setTransactions(prevTransactions => 
+            prevTransactions.map(tx => 
+                tx.signature === signature 
+                    ? { ...tx, status } 
+                    : tx
+            )
+        );
+    }, []);
 
     useEffect(() => {
         const initializeProgramClient = async () => {
-            if(paintingProgramClient.current) return;
+            if (paintingProgramClient.current) return;
             try {
                 setIsLoading(true);
                 paintingProgramClient.current = await getProgramClient(PAINTING_PROGRAM);
@@ -121,7 +151,7 @@ const App: React.FC = () => {
                 if (accountInfo) {
                     // Decode the painting account data
                     const painting = paintingProgramClient.current.coder.accounts.decode('painting', accountInfo.data);
-                    
+
                     // Convert the painting pixels to our state format
                     const newPixels = Array(BOARD_SIZE).fill(0).map(() => Array(BOARD_SIZE).fill(0));
                     for (let y = 0; y < BOARD_SIZE; y++) {
@@ -143,7 +173,7 @@ const App: React.FC = () => {
     }, [connection, paintingPda, getProgramClient, subscribeToPainting]);
 
     // Detect when publicKey is set/connected
-    useEffect( () => {
+    useEffect(() => {
         if (!publicKey) return;
         if (!publicKey || Keypair.fromSeed(publicKey.toBytes()).publicKey.equals(tempKeypair.current?.publicKey || PublicKey.default)) return;
         console.log("Wallet connected with publicKey:", publicKey.toBase58());
@@ -163,27 +193,27 @@ const App: React.FC = () => {
             }
         };
         checkAndTransfer();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isDelegated, connection]);
 
     useEffect(() => {
         const initializeEphemeralConnection = async () => {
             const cluster = process.env.REACT_APP_MAGICBLOCK_URL || "https://devnet.magicblock.app"
-            if(ephemeralConnection.current || paintingProgramClient.current == null) {
+            if (ephemeralConnection.current || paintingProgramClient.current == null) {
                 return;
             }
             ephemeralConnection.current = new Connection(cluster);
             // Airdrop to trigger lazy reload
             try {
                 await ephemeralConnection.current?.requestAirdrop(paintingPda, 1);
-            }catch (_){
+            } catch (_) {
                 console.log("Refreshed account in the ephemeral");
             }
             const accountInfo = await ephemeralConnection.current.getAccountInfo(paintingPda);
             if (accountInfo) {
                 // Decode the painting account data
                 const painting = paintingProgramClient.current.coder.accounts.decode('painting', accountInfo.data);
-                
+
                 // Convert the painting pixels to our state format
                 const newPixels = Array(BOARD_SIZE).fill(0).map(() => Array(BOARD_SIZE).fill(0));
                 for (let y = 0; y < BOARD_SIZE; y++) {
@@ -207,7 +237,7 @@ const App: React.FC = () => {
         await paintPixelTx(x, y, selectedColor);
     };
 
-    const submitTransaction = useCallback(async (transaction: Transaction, useTempKeypair: boolean = false, ephemeral: boolean = false, confirmCommitment : Commitment = "processed"): Promise<string | null> => {
+    const submitTransaction = useCallback(async (transaction: Transaction, useTempKeypair: boolean = false, ephemeral: boolean = false, confirmCommitment: Commitment = "processed"): Promise<string | null> => {
         if (!tempKeypair.current) return null;
         if (!publicKey) return null;
         if (!ephemeralConnection.current) return null;
@@ -223,25 +253,38 @@ const App: React.FC = () => {
             console.log("Submitting transaction...");
             if (!transaction.recentBlockhash) transaction.recentBlockhash = blockhash;
             if (!transaction.feePayer) useTempKeypair ? transaction.feePayer = tempKeypair.current.publicKey : transaction.feePayer = publicKey;
-            if(useTempKeypair) transaction.sign(tempKeypair.current);
+            if (useTempKeypair) transaction.sign(tempKeypair.current);
             let signature;
-            if(!ephemeral && !useTempKeypair){
-                signature = await sendTransaction(transaction, connection, { minContextSlot, skipPreflight: true});
-            }else{
-                signature = await connection.sendRawTransaction(transaction.serialize(), {skipPreflight: true});
+            if (!ephemeral && !useTempKeypair) {
+                signature = await sendTransaction(transaction, connection, { minContextSlot, skipPreflight: true });
+            } else {
+                signature = await connection.sendRawTransaction(transaction.serialize(), { skipPreflight: true });
             }
+            
+            // Add transaction to our tracker
+            addTransaction(signature, ephemeral);
+            
             await connection.confirmTransaction({ blockhash, lastValidBlockHeight, signature }, confirmCommitment);
+            
+            // Update transaction status to confirmed
+            updateTransactionStatus(signature, 'confirmed');
+            
             // Transaction was successful
             console.log(`Transaction confirmed: ${signature}`);
             setTransactionSuccess(`Transaction confirmed`);
             return signature;
         } catch (error) {
             setTransactionError(`Transaction failed: ${error}`);
+            
+            // If we have the signature, update the status to failed
+            if (typeof error === 'object' && error !== null && 'signature' in error) {
+                updateTransactionStatus((error as any).signature, 'failed');
+            }
         } finally {
             setIsSubmitting(false);
         }
         return null;
-    }, [publicKey, sendTransaction, tempKeypair]);
+    }, [publicKey, sendTransaction, tempKeypair, addTransaction, updateTransactionStatus]);
 
     /**
      * Transfer some SOL to temp keypair
@@ -266,7 +309,7 @@ const App: React.FC = () => {
      */
     const paintPixelTx = useCallback(async (x: number, y: number, colorIndex: number) => {
         if (!tempKeypair.current) return;
-        if(!isDelegated){
+        if (!isDelegated) {
             const accountTmpWallet = await connection.getAccountInfo(tempKeypair.current.publicKey);
             if (!accountTmpWallet || accountTmpWallet.lamports <= 0.01 * LAMPORTS_PER_SOL) {
                 await transferToTempKeypair()
@@ -354,13 +397,20 @@ const App: React.FC = () => {
             transaction.feePayer = publicKey;
             transaction.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
             const tx = await sendTransaction(transaction, connection);
+            
+            // Add the transaction to our tracker
+            addTransaction(tx, false);
+            
+            // Update status to confirmed since it's already confirmed at this point
+            updateTransactionStatus(tx, 'confirmed');
+            
             console.log("Initialize transaction", tx);
             setTransactionSuccess("Canvas initialized successfully!");
         } catch (error) {
             console.error("Failed to initialize painting:", error);
             setTransactionError(`Failed to initialize: ${error}`);
         }
-    }, [publicKey, paintingPda, connection, sendTransaction]);
+    }, [publicKey, paintingPda, connection, sendTransaction, addTransaction, updateTransactionStatus]);
 
     return (
         <div className="App">
@@ -384,11 +434,6 @@ const App: React.FC = () => {
                         {publicKey ? (
                             <>
                                 <div className="painting-controls">
-                                    <ColorPalette 
-                                        selectedColor={selectedColor} 
-                                        onColorSelect={setSelectedColor} 
-                                    />
-                                    
                                     <div className="buttons">
                                         <Button
                                             onClick={initializePaintingTx}
@@ -397,7 +442,7 @@ const App: React.FC = () => {
                                         >
                                             Initialize Canvas
                                         </Button>
-                                        
+
                                         <Button
                                             onClick={delegatePdaTx}
                                             disabled={isSubmitting || isDelegated}
@@ -405,7 +450,7 @@ const App: React.FC = () => {
                                         >
                                             Delegate to Ephemeral
                                         </Button>
-                                        
+
                                         <Button
                                             onClick={undelegateTx}
                                             disabled={isSubmitting || !isDelegated}
@@ -428,14 +473,28 @@ const App: React.FC = () => {
                             </div>
                         )}
 
-                        <PaintingBoard 
-                            pixels={isDelegated ? ephemeralPixels : pixels} 
-                            onPixelClick={paintPixel}
-                            isSubmitting={isSubmitting || !publicKey}
-                        />
+                        <div className="canvas-palette-container">
+                            <div className="canvas-container">
+                                <PaintingBoard
+                                    pixels={isDelegated ? ephemeralPixels : pixels}
+                                    onPixelClick={paintPixel}
+                                    isSubmitting={isSubmitting || !publicKey}
+                                />
+                            </div>
+
+                            <div className="palette-container">
+                                <ColorPalette
+                                    selectedColor={selectedColor}
+                                    onColorSelect={setSelectedColor}
+                                />
+                            </div>
+                        </div>
                     </>
                 )}
             </div>
+            
+            {/* Transaction Sidebar */}
+            <TransactionSidebar transactions={transactions} />
         </div>
     );
 };

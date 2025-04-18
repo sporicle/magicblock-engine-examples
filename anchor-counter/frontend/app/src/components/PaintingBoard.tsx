@@ -11,7 +11,6 @@ type PaintingBoardProps = {
 const PaintingBoard: React.FC<PaintingBoardProps> = ({ pixels, onPixelClick, isSubmitting }) => {
   return (
     <div className="painting-board">
-      <h2>Collaborative Canvas</h2>
       <div className="board-container">
         {pixels.map((row, y) => (
           <div key={y} className="board-row">

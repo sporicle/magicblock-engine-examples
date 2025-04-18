@@ -1,0 +1,80 @@
+.transaction-card {
+  border-radius: 6px;
+  margin-bottom: 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: 12px;
+  transition: all 0.2s ease;
+}
+
+.transaction-card .signature {
+  font-family: monospace;
+  font-size: 0.8rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Utility classes */
+.flex {
+  display: flex;
+}
+
+.justify-between {
+  justify-content: space-between;
+}
+
+.items-center {
+  align-items: center;
+}
+
+.mb-1 {
+  margin-bottom: 0.25rem;
+}
+
+.mt-2 {
+  margin-top: 0.5rem;
+}
+
+.text-xs {
+  font-size: 0.75rem;
+}
+
+.font-semibold {
+  font-weight: 600;
+}
+
+/* Status colors */
+.bg-yellow-100 {
+  background-color: #fef9c3;
+  border: 1px solid #fde68a;
+}
+
+.bg-green-100 {
+  background-color: #dcfce7;
+  border: 1px solid #bbf7d0;
+}
+
+.bg-red-100 {
+  background-color: #fee2e2;
+  border: 1px solid #fecaca;
+}
+
+.text-yellow-700 {
+  color: #a16207;
+}
+
+.text-green-700 {
+  color: #15803d;
+}
+
+.text-red-700 {
+  color: #b91c1c;
+}
+
+.text-blue-600 {
+  color: #2563eb;
+}
+
+.text-blue-600:hover {
+  color: #1d4ed8;
+} 

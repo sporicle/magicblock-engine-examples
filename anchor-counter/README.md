@@ -1,173 +1,140 @@
-# ➕ Anchor Counter
+# Collaborative Painting on Solana
 
-Simple counter program using Anchor and Ephemeral Rollups.
+A decentralized collaborative painting application built on Solana using Ephemeral Rollups. This application allows multiple users to paint on a shared 20x20 canvas, with changes being recorded on the blockchain.
 
-## Software Packages
+## Features
 
-This program has utilized the following sofware packages.
+- 20x20 pixel canvas for collaborative artwork
+- 8 color palette selection
+- Support for Ephemeral Rollups for fast, low-cost transactions
+- Anyone can paint on the canvas - no restrictions
+- Seamless delegation and undelegation to/from Ephemeral Rollups
 
-| Software   | Version | Installation Guide                                              |
-| ---------- | ------- | --------------------------------------------------------------- |
-| **Solana** | 2.0.21  | [Install Solana](https://docs.anza.xyz/cli/install)             |
-| **Rust**   | 1.82    | [Install Rust](https://www.rust-lang.org/tools/install)         |
-| **Anchor** | 0.30.1  | [Install Anchor](https://www.anchor-lang.com/docs/installation) |
+## Technical Stack
 
-```sh
-# Check and initialize your Solana version
-agave-install list
-agave-install init 2.0.21
+- **Backend**: Solana program written in Rust with Anchor framework
+- **Frontend**: React application with TypeScript
+- **Integration**: Solana Web3.js, Anchor Client, and Ephemeral Rollups SDK
 
-# Check and initialize your Rust version
-rustup show
-rustup install 1.82
+## Getting Started
 
-# Check and initialize your Anchor version
-avm list
-avm use 0.30.1
+### Prerequisites
+
+- Solana CLI tools
+- Anchor framework
+- Node.js v14+ and npm/yarn
+- A Solana wallet (Phantom, Solflare, etc.)
+
+### Installation
+
+1. Clone the repository:
+```bash
+git clone <repository-url>
+cd anchor-counter
 ```
 
-## ✨ Build and Test
+2. Install dependencies:
+```bash
+npm install
+cd frontend/app
+npm install
+cd ../..
+```
 
-Run the tests with existing program:
+### Local Development
+
+1. Start a local Solana validator:
+```bash
+solana-test-validator
+```
+
+2. Build and deploy the Solana program:
+```bash
+anchor build
+anchor deploy
+```
+
+3. Update the program ID:
+   - Copy the program ID from the deployment output
+   - Update it in `lib.rs` and `Anchor.toml`
+
+4. Run the frontend:
+```bash
+cd frontend/app
+npm start
+```
+
+5. The app should now be running at `http://localhost:3000`
+
+## Deployment
+
+### Deploying the Solana Program
+
+You can use the provided deploy script:
 
 ```bash
-anchor test --skip-deploy --skip-build --skip-local-validator
+sh sh/deploy-backend.sh
 ```
 
-Build, deploy and run the tests with new program (note: delete keypairs in `/target/deploy` folder):
+### Generating a New Program ID and Deploying
+
+If you need to create a new program ID and deploy with it, use the deploy-new script:
 
 ```bash
-# Delete keypairs in the deploy folder
-rm -rf /target/deploy/*.keypair
-
-# Build, deploy and test program
-anchor test
+sh sh/deploy-new.sh
 ```
 
-## 📤 Delegate an account
-
-Delegating an account is the process of transferring the ownership of an account to the delegation program.
-After delegation, the account can be treated as a regular account in the Ephemeral Rollups, where transactions can be run with low-latency.
-
-Delegation is done by invoking trough CPI the `delegate` instruction of the delegation program.
-
-1. Add the delegation sdk to your project:
-
-   ```bash
-   cargo add ephemeral-rollups-sdk
-   ```
-
-2. Mark your program with `#[delegate]` and add the CPI call to one instruction of your program:
-
-   ```rust
-   use ephemeral_rollups_sdk::cpi::delegate_account;
-   use ephemeral_rollups_sdk::er::commit_accounts;
-   use ephemeral_rollups_sdk::anchor::delegate;
-
-
-   #[delegate]
-   #[program]
-   pub mod anchor_counter {
-
-      pub fn delegate(ctx: Context<DelegateInput>) -> Result<()> {
-          let pda_seeds: &[&[u8]] = &[TEST_PDA_SEED];
-
-          delegate_account(
-              &ctx.accounts.payer,
-              &ctx.accounts.pda,
-              &ctx.accounts.owner_program,
-              &ctx.accounts.buffer,
-              &ctx.accounts.delegation_record,
-              &ctx.accounts.delegate_account_seeds,
-              &ctx.accounts.delegation_program,
-              &ctx.accounts.system_program,
-              pda_seeds,
-              0, // max delegation lifetime, 0 means no limit
-              30000, // commit interval in ms (30s)
-       )?;
-
-       Ok(())
-      }
-   }
-   ```
-
-3. After delegation, you can run transactions on the account with low-latency. Any transaction that would work on the base base layer will work on the delegated account.
-
-## 💥 Execute Transactions
-
-1. Add the typescript sdk to your project:
-
-   ```bash
-   yarn add @magicblock-labs/ephemeral-rollups-sdk
-   ```
-
-2. Call the instruction to execute the delegation
-3. Execute a transaction:
-
-   ```typescript
-   let tx = await program.methods
-     .increment()
-     .accounts({
-       counter: pda,
-     })
-     .transaction();
-   tx.feePayer = providerEphemeralRollup.wallet.publicKey;
-   tx.recentBlockhash = (
-     await providerEphemeralRollup.connection.getLatestBlockhash()
-   ).blockhash;
-   tx = await providerEphemeralRollup.wallet.signTransaction(tx);
-
-   const txSign = await providerEphemeralRollup.sendAndConfirm(tx, []);
-   console.log("Increment Tx: ", txSign);
-   ```
-
-## 📥 Undelegate an account
-
-Undelegating an account is the process of transferring the ownership of an account back to the owner program.
-
-You can undelegate with:
-
-```typescript
-const ix = createUndelegateInstruction({
-  payer: provider.wallet.publicKey,
-  delegatedAccount: pda,
-  ownerProgram: program.programId,
-  reimbursement: provider.wallet.publicKey,
-});
-let tx = new anchor.web3.Transaction().add(ix);
-tx.feePayer = provider.wallet.publicKey;
-tx.recentBlockhash = (await provider.connection.getLatestBlockhash()).blockhash;
-tx = await provider.wallet.signTransaction(tx);
-```
-
-## Running Tests on Devnet with a Local Ephemeral Rollup
-
-To run tests using a local ephemeral validator, follow these steps:
-
-### 1. Install the Local Validator
-
-Ensure you have the ephemeral validator installed globally:
+If you already have an existing keypair and want to overwrite it, use the --force flag:
 
 ```bash
-npm install -g @magicblock-labs/ephemeral-validator
+sh sh/deploy-new.sh --force
 ```
 
-### 2. Start the Local Validator
+This script will:
+1. Generate a new keypair for the program
+2. Update all references to the program ID in the codebase
+3. Build and deploy the program with the new ID
+4. Alert you about any potential places where manual updates might be needed
 
-Run the local validator with the appropriate environment variables:
+### Deploying the Frontend
+
+You can use the provided deploy script and choose your preferred hosting provider:
 
 ```bash
-ACCOUNTS_REMOTE=https://rpc.magicblock.app/devnet ACCOUNTS_LIFECYCLE=ephemeral ephemeral-validator
+sh sh/deploy-frontend.sh
 ```
+Edit the script to uncomment your preferred hosting method (GitHub Pages, Vercel, or Netlify).
 
-`ACCOUNTS_REMOTE` point to the reference RPC endpoint, and `ACCOUNTS_LIFECYCLE` should be set to `ephemeral`.
+## Using the App
 
-### 3. Run the Tests with the Local Validator
+1. Connect your Solana wallet using the button in the top-right corner
+2. Initialize the canvas (if it hasn't been initialized yet)
+3. Select a color from the palette
+4. Click on any pixel to paint it with the selected color
+5. To use Ephemeral Rollups for faster transactions:
+   - Click "Delegate to Ephemeral" button
+   - Paint as usual with faster transactions
+   - When done, click "Undelegate" to commit changes back to Solana mainnet
 
-Execute the tests while pointing to the local validator:
+## Architecture
 
-```bash
-PROVIDER_ENDPOINT=http://localhost:8899 WS_ENDPOINT=ws://localhost:8900 anchor test --skip-build --skip-deploy --skip-local-validator
-```
+The application consists of two main components:
 
-This setup ensures tests run efficiently on a local ephemeral rollup while connecting to the devnet.
+### Solana Program
+- Manages the 20x20 canvas state
+- Handles pixel painting operations
+- Supports delegation to Ephemeral Rollups
+
+### Frontend
+- React-based UI for the canvas and color selection
+- Connects to Solana via wallet adapters
+- Displays real-time changes from the blockchain
+
+## License
+
+This project is licensed under [MIT License](LICENSE).
+
+## Acknowledgements
+
+- This project is built using [Anchor](https://project-serum.github.io/anchor/)
+- Based on the [Ephemeral Rollups SDK](https://magicblock.gg/) by Magicblock

@@ -1,0 +1,60 @@
+.painting-board {
+  margin-bottom: 20px;
+
+  h2 {
+    text-align: center;
+    margin-bottom: 20px;
+    color: #333;
+  }
+
+  .board-container {
+    display: flex;
+    flex-direction: column;
+    border: 2px solid #333;
+    background-color: #fff;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  .board-row {
+    display: flex;
+    height: 20px;
+  }
+
+  .pixel {
+    width: 20px;
+    height: 20px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+    transition: transform 0.1s;
+
+    &:hover {
+      transform: scale(1.1);
+      z-index: 1;
+      box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+    }
+
+    &.disabled {
+      cursor: not-allowed;
+      
+      &:hover {
+        transform: none;
+        box-shadow: none;
+      }
+    }
+  }
+}
+
+@media (max-width: 600px) {
+  .painting-board {
+    .board-container {
+      max-width: 80vw;
+    }
+    
+    .pixel {
+      width: calc(80vw / 20);
+      height: calc(80vw / 20);
+    }
+  }
+} 

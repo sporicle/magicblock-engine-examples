@@ -460,11 +460,6 @@ const App: React.FC = () => {
                                         </Button>
                                     </div>
                                 </div>
-
-                                <div className="status-info">
-                                    <h3>Status: {isDelegated ? "Delegated to Ephemeral Rollup" : "On Solana Mainnet"}</h3>
-                                    <p>Connected Wallet: {publicKey.toString()}</p>
-                                </div>
                             </>
                         ) : (
                             <div className="view-only-notice">
@@ -494,7 +489,11 @@ const App: React.FC = () => {
             </div>
             
             {/* Transaction Sidebar */}
-            <TransactionSidebar transactions={transactions} />
+            <TransactionSidebar 
+                transactions={transactions} 
+                isDelegated={isDelegated}
+                publicKey={publicKey ? publicKey.toString() : null}
+            />
         </div>
     );
 };

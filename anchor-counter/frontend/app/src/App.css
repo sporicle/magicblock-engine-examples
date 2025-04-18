@@ -72,7 +72,7 @@
 @media (max-width: 768px) {
   .container {
     margin-right: 0;
-    margin-bottom: 180px; /* Space for the sidebar at the bottom */
+    margin-bottom: 280px; /* Increased to match sidebar height */
     max-width: 100%;
   }
   

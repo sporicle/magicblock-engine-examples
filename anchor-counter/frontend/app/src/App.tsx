@@ -33,6 +33,7 @@ const App: React.FC = () => {
     const [ephemeralPixels, setEphemeralPixels] = useState<number[][]>(Array(BOARD_SIZE).fill(0).map(() => Array(BOARD_SIZE).fill(0)));
     const [isDelegated, setIsDelegated] = useState<boolean>(false);
     const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+    const [isLoading, setIsLoading] = useState<boolean>(true);
     const [transactionError, setTransactionError] = useState<string | null>(null);
     const [transactionSuccess, setTransactionSuccess] = useState<string | null>(null);
     const paintingProgramClient = useRef<Program | null>(null);
@@ -112,26 +113,33 @@ const App: React.FC = () => {
     useEffect(() => {
         const initializeProgramClient = async () => {
             if(paintingProgramClient.current) return;
-            paintingProgramClient.current = await getProgramClient(PAINTING_PROGRAM);
-            const accountInfo = await provider.current.connection.getAccountInfo(paintingPda);
-            console.log("Account exists:", !!accountInfo);
-            if (accountInfo) {
-                // Decode the painting account data
-                const painting = paintingProgramClient.current.coder.accounts.decode('painting', accountInfo.data);
-                
-                // Convert the painting pixels to our state format
-                const newPixels = Array(BOARD_SIZE).fill(0).map(() => Array(BOARD_SIZE).fill(0));
-                for (let y = 0; y < BOARD_SIZE; y++) {
-                    for (let x = 0; x < BOARD_SIZE; x++) {
-                        newPixels[y][x] = painting.pixels[y][x];
+            try {
+                setIsLoading(true);
+                paintingProgramClient.current = await getProgramClient(PAINTING_PROGRAM);
+                const accountInfo = await provider.current.connection.getAccountInfo(paintingPda);
+                console.log("Account exists:", !!accountInfo);
+                if (accountInfo) {
+                    // Decode the painting account data
+                    const painting = paintingProgramClient.current.coder.accounts.decode('painting', accountInfo.data);
+                    
+                    // Convert the painting pixels to our state format
+                    const newPixels = Array(BOARD_SIZE).fill(0).map(() => Array(BOARD_SIZE).fill(0));
+                    for (let y = 0; y < BOARD_SIZE; y++) {
+                        for (let x = 0; x < BOARD_SIZE; x++) {
+                            newPixels[y][x] = painting.pixels[y][x];
+                        }
                     }
+                    setPixels(newPixels);
+                    setIsDelegated(!accountInfo.owner.equals(PAINTING_PROGRAM));
+                    await subscribeToPainting();
                 }
-                setPixels(newPixels);
-                setIsDelegated(!accountInfo.owner.equals(PAINTING_PROGRAM));
-                await subscribeToPainting();
+                setIsLoading(false);
+            } catch (error) {
+                console.error("Error initializing program client:", error);
+                setIsLoading(false);
             }
         };
-        initializeProgramClient().catch(console.error);
+        initializeProgramClient();
     }, [connection, paintingPda, getProgramClient, subscribeToPainting]);
 
     // Detect when publicKey is set/connected
@@ -192,6 +200,10 @@ const App: React.FC = () => {
     }, [paintingPda, subscribeToPainting, subscribeToEphemeralPainting]);
 
     const paintPixel = async (x: number, y: number): Promise<void> => {
+        if (!publicKey) {
+            setTransactionError("Please connect your wallet to paint pixels");
+            return;
+        }
         await paintPixelTx(x, y, selectedColor);
     };
 
@@ -356,65 +368,74 @@ const App: React.FC = () => {
                 <WalletMultiButton />
             </div>
 
-            {publicKey ? (
-                <>
-                    <div className="container">
-                        <div className="alerts">
-                            {transactionError && <Alert type="error" message={transactionError} />}
-                            {transactionSuccess && <Alert type="success" message={transactionSuccess} />}
-                        </div>
+            <div className="container">
+                <div className="alerts">
+                    {transactionError && <Alert type="error" message={transactionError} />}
+                    {transactionSuccess && <Alert type="success" message={transactionSuccess} />}
+                </div>
 
-                        <div className="painting-controls">
-                            <ColorPalette 
-                                selectedColor={selectedColor} 
-                                onColorSelect={setSelectedColor} 
-                            />
-                            
-                            <div className="buttons">
-                                <Button
-                                    onClick={initializePaintingTx}
-                                    disabled={isSubmitting}
-                                    title="Initialize the canvas if it doesn't exist yet"
-                                >
-                                    Initialize Canvas
-                                </Button>
-                                
-                                <Button
-                                    onClick={delegatePdaTx}
-                                    disabled={isSubmitting || isDelegated}
-                                    title="Delegate the canvas to the Ephemeral Rollup"
-                                >
-                                    Delegate to Ephemeral
-                                </Button>
-                                
-                                <Button
-                                    onClick={undelegateTx}
-                                    disabled={isSubmitting || !isDelegated}
-                                    title="Undelegate the canvas from the Ephemeral Rollup"
-                                >
-                                    Undelegate
-                                </Button>
+                {isLoading ? (
+                    <div className="loading-container">
+                        <h3>Loading Board...</h3>
+                        <p>Please wait while we fetch the latest canvas data</p>
+                    </div>
+                ) : (
+                    <>
+                        {publicKey ? (
+                            <>
+                                <div className="painting-controls">
+                                    <ColorPalette 
+                                        selectedColor={selectedColor} 
+                                        onColorSelect={setSelectedColor} 
+                                    />
+                                    
+                                    <div className="buttons">
+                                        <Button
+                                            onClick={initializePaintingTx}
+                                            disabled={isSubmitting}
+                                            title="Initialize the canvas if it doesn't exist yet"
+                                        >
+                                            Initialize Canvas
+                                        </Button>
+                                        
+                                        <Button
+                                            onClick={delegatePdaTx}
+                                            disabled={isSubmitting || isDelegated}
+                                            title="Delegate the canvas to the Ephemeral Rollup"
+                                        >
+                                            Delegate to Ephemeral
+                                        </Button>
+                                        
+                                        <Button
+                                            onClick={undelegateTx}
+                                            disabled={isSubmitting || !isDelegated}
+                                            title="Undelegate the canvas from the Ephemeral Rollup"
+                                        >
+                                            Undelegate
+                                        </Button>
+                                    </div>
+                                </div>
+
+                                <div className="status-info">
+                                    <h3>Status: {isDelegated ? "Delegated to Ephemeral Rollup" : "On Solana Mainnet"}</h3>
+                                    <p>Connected Wallet: {publicKey.toString()}</p>
+                                </div>
+                            </>
+                        ) : (
+                            <div className="view-only-notice">
+                                <h3>View-Only Mode</h3>
+                                <p>Connect your wallet to interact with the canvas</p>
                             </div>
-                        </div>
-
-                        <div className="status-info">
-                            <h3>Status: {isDelegated ? "Delegated to Ephemeral Rollup" : "On Solana Mainnet"}</h3>
-                            <p>Connected Wallet: {publicKey.toString()}</p>
-                        </div>
+                        )}
 
                         <PaintingBoard 
                             pixels={isDelegated ? ephemeralPixels : pixels} 
                             onPixelClick={paintPixel}
-                            isSubmitting={isSubmitting}
+                            isSubmitting={isSubmitting || !publicKey}
                         />
-                    </div>
-                </>
-            ) : (
-                <div className="container connect-prompt">
-                    <h2>Connect your wallet to start painting</h2>
-                    <p>Use the "Select Wallet" button at the top of the page to connect.</p>
-                </div>
-            )}
+                    </>
+                )}
+            </div>
         </div>
     );
 };

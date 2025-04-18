@@ -316,3 +316,43 @@ code {
     margin-left: 5px;
     margin-right: 0;
 }
+
+.view-only-notice {
+    background-color: rgba(0, 0, 0, 0.05);
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.view-only-notice h3 {
+    margin-top: 0;
+    color: #555;
+}
+
+.view-only-notice p {
+    margin-bottom: 0;
+    color: #777;
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  text-align: center;
+  background-color: rgba(0, 0, 0, 0.02);
+  border-radius: 8px;
+  margin: 2rem 0;
+}
+
+.loading-container h3 {
+  color: #555;
+  margin-bottom: 0.5rem;
+}
+
+.loading-container p {
+  color: #777;
+  margin-bottom: 0;
+}

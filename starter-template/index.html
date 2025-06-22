@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MagicBlock Starter</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        #wallet { margin-bottom: 10px; }
+        button { margin-right: 5px; }
+    </style>
+</head>
+<body>
+    <h1>MagicBlock Starter</h1>
+    <div>
+        Network:
+        <select id="network">
+            <option value="devnet">Devnet</option>
+            <option value="ephemeral">Ephemeral</option>
+        </select>
+    </div>
+    <p id="wallet">Loading wallet...</p>
+    <button id="airdrop">Airdrop 1 SOL</button>
+    <button id="ping">Ping</button>
+
+    <script type="module">
+        import {Connection, clusterApiUrl, Keypair, LAMPORTS_PER_SOL, SystemProgram, Transaction} from 'https://cdn.jsdelivr.net/npm/@solana/web3.js@1.98.0/+esm';
+
+        const NETWORKS = {
+            devnet: clusterApiUrl('devnet'),
+            ephemeral: 'https://devnet.magicblock.app/'
+        };
+
+        let secret = localStorage.getItem('secret');
+        let keypair;
+        if (secret) {
+            const secretKey = Uint8Array.from(JSON.parse(secret));
+            keypair = Keypair.fromSecretKey(secretKey);
+        } else {
+            keypair = Keypair.generate();
+            localStorage.setItem('secret', JSON.stringify(Array.from(keypair.secretKey)));
+        }
+
+        const walletElem = document.getElementById('wallet');
+        walletElem.textContent = `Wallet: ${keypair.publicKey.toBase58()}`;
+
+        async function getConnection() {
+            const net = document.getElementById('network').value;
+            return new Connection(NETWORKS[net], 'confirmed');
+        }
+
+        document.getElementById('airdrop').onclick = async () => {
+            const connection = await getConnection();
+            const sig = await connection.requestAirdrop(keypair.publicKey, LAMPORTS_PER_SOL);
+            await connection.confirmTransaction(sig, 'confirmed');
+            alert('Airdrop tx: ' + sig);
+        };
+
+        document.getElementById('ping').onclick = async () => {
+            const connection = await getConnection();
+            const tx = new Transaction().add(SystemProgram.transfer({
+                fromPubkey: keypair.publicKey,
+                toPubkey: keypair.publicKey,
+                lamports: 0
+            }));
+            tx.feePayer = keypair.publicKey;
+            tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
+            tx.sign(keypair);
+            const sig = await connection.sendRawTransaction(tx.serialize());
+            await connection.confirmTransaction(sig, 'confirmed');
+            alert('Ping tx: ' + sig);
+        };
+    </script>
+</body>
+</html>

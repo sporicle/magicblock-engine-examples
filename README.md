@@ -13,6 +13,7 @@ Read more about Ephemeral Rollups [here](https://docs.magicblock.gg/EphemeralRol
 - [Rust Counter](./rust-counter/README.md) - A simple counter that can be incremented. Tests natively to delegate/undelegate accounts and run transactions.
 - [Bolt Counter](./bolt-counter/README.md) - A simple counter that can be incremented. Tests use the bolt sdk to delegate/undelegate accounts and run transactions.
 - [Dummy Token Transfer](./dummy-token-transfer/README.md) - A token transferer that can delegate and execute both on-chain and in the ephemeral rollup.
+- [Starter Template](./starter-template/README.md) - Minimal website with local wallet, network toggle and ping transaction.
 
 ## 🚧 Under Testing 🚧
 
